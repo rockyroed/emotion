@@ -13,7 +13,29 @@ type Cursor = {
   next?: Cursor
 }
 
-export type CSSProperties = CSS.PropertiesFallback<number | string>
+type ValidFontWeight =
+  | 'normal'
+  | 'bold'
+  | 'lighter'
+  | 'bolder'
+  | 100
+  | 200
+  | 300
+  | 400
+  | 500
+  | 600
+  | 700
+  | 800
+  | 900
+
+type StrictCSSProperties = Omit<
+  CSS.PropertiesFallback<number | string>,
+  'fontWeight'
+> & {
+  fontWeight?: ValidFontWeight
+}
+
+export type CSSProperties = StrictCSSProperties
 export type CSSPropertiesWithMultiValues = {
   [K in keyof CSSProperties]:
     | CSSProperties[K]
@@ -91,6 +113,13 @@ const processStyleName = /* #__PURE__ */ memoize((styleName: string) =>
     : styleName.replace(hyphenateRegex, '-$&').toLowerCase()
 )
 
+const isValidFontWeight = (value: any): value is ValidFontWeight => {
+  if (typeof value === 'number') {
+    return value >= 100 && value <= 900 && value % 100 === 0
+  }
+  return ['normal', 'bold', 'lighter', 'bolder'].includes(value)
+}
+
 let processStyleValue = (
   key: string,
   value: string | number
@@ -145,6 +174,14 @@ if (isDevelopment) {
       ) {
         throw new Error(
           `You seem to be using a value for 'content' without quotes, try replacing it with \`content: '"${value}"'\``
+        )
+      }
+    }
+
+    if (key === 'fontWeight') {
+      if (!isValidFontWeight(value)) {
+        throw new Error(
+          `Invalid font-weight value: ${value}. Valid values are: normal, bold, lighter, bolder, or numbers 100-900 in increments of 100.`
         )
       }
     }
